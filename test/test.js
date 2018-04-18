@@ -1,24 +1,29 @@
 process.env.NODE_ENV = 'test';
 import 'babel-polyfill';
 
-import {expect} from 'chai';
-import {chaiHttp} from 'chai-http';
+import supertest from 'supertest';
+import chai from 'chai';
 
 import app from './../src/index';
 import initDB from './../src/db';
 
 import request from 'supertest';
 
+global.app = app;
+global.request = supertest(app);
+global.expect = chai.expect;
+
 
 describe('POST API',  () => {
     it('should_post_a_key_value_and_return_value',()=>{
-        return request(app)
+         request(app)
             .post('/object')
             .send({
                 'mykey':'value1'
             })
-            .then((res)=>{
-                expect(res.body.key).to.be.equal('mykey')
+            .end((err,res)=>{
+                expect(res.body.key).to.be.equal('mykey');
+                done(err)
             })
     })
 })

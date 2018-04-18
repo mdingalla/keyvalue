@@ -16,10 +16,8 @@ export const keyvaluecontroller = () => {
 
 	
 	router.post('/',jsonParser,((req,res)=>{
-        let timestamp = req.query.timestamp || new Date();
         const key = Object.keys(req.body)[0];
-
-       HandlePostRequest(res,key, req.body[key],timestamp);
+       HandlePostRequest(res,key, req.body[key]);
         
     }));
 
@@ -34,56 +32,46 @@ export const keyvaluecontroller = () => {
 }
 
 
- function HandlePostRequest(res,mkey,mvalue,ts) {
+ function HandlePostRequest(res,mkey,mvalue) {
        MyStore.findOne({key:mkey},((err,record)=>{
         if(record){
-               MyStore.findOneAndUpdate({_id:record._id},{
-                key:mkey,
-                value:mvalue
-            },(err,doc,rs)=>{
-               if(mvalue != record.value )
-               {
-                    MyStoreHistory.create({
-                        refId:doc._id,
-                        oldvalue:record.value,
-                        key:mkey,
-                        newvalue:mvalue,
-                        timestampdate:ts
-                    }).then(()=>{
-                         res.send({
-                            key:mkey,
-                            value:mvalue,
-                            timestamp:ts
-                        })
-                    })
-               }
-               else {
-                res.send({
+            if(mvalue != record.value )
+            {
+                MyStore.findOneAndUpdate({_id:record._id},{
                     key:mkey,
-                    value:mvalue,
-                    timestamp:ts
+                    value:mvalue
+                },(err,doc,rs)=>{
+                    LogHistory(res,doc._id,mkey,mvalue);
                 })
-               }
-            })
+            }
+            else {
+                MyStoreHistory.findOne({key:mkey},{},{ sort: { 'created_at' : -1 }},(err,doc)=>{
+                    res.send({
+                        key:doc.key,
+                        value:doc.value,
+                        timestamp:new Date(doc.created_at).getTime()
+                    })
+                })
+            
+            }
+               
         }
         else {
              MyStore.create({
                 key:mkey,
                 value:mvalue
-            }).then(()=>{
-                res.send({
-                    key:mkey,
-                    value:mvalue,
-                    timestamp:ts
-                })
+            }).then((record)=>{
+            
+                LogHistory(res,record._id,mkey,mvalue);
             })
         }
     }));
 }
 
 function HandleGetRequest(res,mkey,ts){
+    const myisodate = new Date(parseFloat(ts));
     if(ts){
-        MyStoreHistory.findOne({key:mkey,timestampdate:{$gt:ts}},((err,record)=>{
+        MyStoreHistory.findOne({key:mkey,created_at:{$lte:myisodate}},{},{ sort: { 'created_at' : -1 }},((err,record)=>{
             if(record){
                 res.send({
                     value:record.value
@@ -107,6 +95,21 @@ function HandleGetRequest(res,mkey,ts){
         }))
     }
     
+}
+
+function LogHistory(res,docid,mkey,mvalue){
+    console.log('LogHistory')
+    MyStoreHistory.create({
+        refId:docid,
+        key:mkey,
+        value:mvalue
+    }).then((doc)=>{
+         res.send({
+            key:mkey,
+            value:mvalue,
+            timestamp:new Date(doc.created_at).getTime()
+        })
+    })
 }
 
 function HandleServerError(res,err){

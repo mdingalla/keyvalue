@@ -22,10 +22,8 @@ export const keyvaluecontroller = () => {
     }));
 
     router.get('/:key',jsonParser,((req,res)=>{
-        // var timestamp = req.query.timestamp || +new Date() / 1000 | 0;
         var timestamp = req.query.timestamp;
         HandleGetRequest(res,req.params.key,timestamp)
-       // return res.status(200).send('OK')
     }));
 
 	return router;

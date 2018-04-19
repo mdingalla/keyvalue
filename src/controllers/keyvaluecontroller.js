@@ -96,7 +96,6 @@ function HandleGetRequest(res,mkey,ts){
 }
 
 function LogHistory(res,docid,mkey,mvalue){
-    console.log('LogHistory')
     MyStoreHistory.create({
         refId:docid,
         key:mkey,
